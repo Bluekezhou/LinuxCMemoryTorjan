@@ -248,14 +248,18 @@ int parse_cmd(int sockfd, char *cmd, char *result)
     return ret;
 }
 
-/*
- * description: auto kill process itself 2s later
- * of course, you can use it as a timer
- */
-void *do_exit(void *arg)
+
+void *signal_handler(int num)
 {
-    sleep(5); //sleep for 2s
-    exit(2); //time is out, stop the program 
+    exit(1);
+}
+/*
+ * 在指定时间结束后退出程序
+ */
+void timer_exit(int seconds)
+{
+    signal(SIGALRM, sig_alarm); 
+    alarm(seconds);
 }
 
 int main()
@@ -282,16 +286,9 @@ int main()
             {
                 exit(0);
             }
-            /*
-             * stop the program if the job isn't done in 2s
-             */
-            pthread_t do_exit_tid;
-            int err = pthread_create(&do_exit_tid, NULL, do_exit, NULL);   
-            if(err != 0){
-                if(DEBUG)
-                    printf("create thread error: %s/n",strerror(err));  
-                return -1;  
-            }  
+            
+            /* stop the program if the job isn't done in 2s */
+            timer_exit(2);
             
             //time_t start = time(NULL);
             char cmd[BUFSIZE], result[CMD_RES_SIZE];
