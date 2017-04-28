@@ -248,20 +248,6 @@ int parse_cmd(int sockfd, char *cmd, char *result)
     return ret;
 }
 
-
-void *signal_handler(int num)
-{
-    exit(1);
-}
-/*
- * 在指定时间结束后退出程序
- */
-void timer_exit(int seconds)
-{
-    signal(SIGALRM, sig_alarm); 
-    alarm(seconds);
-}
-
 int main()
 {
     char *self_path = getpath();
@@ -288,7 +274,7 @@ int main()
             }
             
             /* stop the program if the job isn't done in 2s */
-            timer_exit(2);
+            alarm(2);
             
             //time_t start = time(NULL);
             char cmd[BUFSIZE], result[CMD_RES_SIZE];
