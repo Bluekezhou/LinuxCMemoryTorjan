@@ -116,7 +116,7 @@ class Servers(SRH):
 
         # print result of command execute
         print_buf += cmd_result + "\n"
-        print print_buf
+        print print_buf.strip()
 
     def submit_flag(self, flag):
         print '[*] tring to submit flag'
